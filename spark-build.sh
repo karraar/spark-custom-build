@@ -22,7 +22,7 @@ set -e
 SPARK_VERSION=${SPARK_VERSION:-2.4.4}
 HADOOP_VERSION=${HADOOP_VERSION:-2.8.5}
 AWS_VERSION=${AWS_VERSION:-1.11.646}
-INSTALL_DIR=~${INSTALL_DIR:-$HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
+SPARK_INSTALL_DIR=~${SPARK_INSTALL_DIR:-$HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
 
 TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
 
@@ -61,9 +61,9 @@ build_spark_dist() {
 }
 
 install_spark_dist() {
-    echo "Installing to ${INSTALL_DIR}..."
-    mkdir -p ${INSTALL_DIR}
-    cp -r ${TMP_BUILD_DIR}/spark-${SPARK_VERSION}/dist/* ${INSTALL_DIR}/
+    echo "Installing to ${SPARK_INSTALL_DIR}..."
+    mkdir -p ${SPARK_INSTALL_DIR}
+    cp -r ${TMP_BUILD_DIR}/spark-${SPARK_VERSION}/dist/* ${SPARK_INSTALL_DIR}/
 }
 
 download_dep_jar() {
@@ -91,7 +91,7 @@ download_aws_deps() {
 
 setup_env_vars() {
     echo "
-export SPARK_HOME=${INSTALL_DIR}
+export SPARK_HOME=${SPARK_INSTALL_DIR}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
 " >> ~/.bash_profile
 
