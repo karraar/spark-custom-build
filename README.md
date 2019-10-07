@@ -3,9 +3,9 @@
 This script will build spark, configure, and install as follows:
 - Using the env variables 
   * SPARK_VERSION (default: 2.4.4)
-  * HADOOP_VERSION (default 2.8.5)
-  * AWS_VERSION (default 1.11.646)
-  * INSTALL_DIR (default $HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION})
+  * HADOOP_VERSION (default: 2.8.5)
+  * AWS_VERSION (default: 1.11.646)
+  * SPARK_INSTALL_DIR (default: $HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION})
 - Download sources
 - Build
 - Download Hadoop-aws ${HADOOP_VERSION} and aws-java-sdk{,core,s3} ${AWS_VERSION}
