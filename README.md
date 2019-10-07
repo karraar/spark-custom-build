@@ -10,7 +10,7 @@ This script will build spark, configure, and install as follows:
 - Build
 - Download Hadoop-aws ${HADOOP_VERSION} and aws-java-sdk{,core,s3} ${AWS_VERSION}
 - Set Spark log level to WARN
-- Install to ${INSTALL_DIR}
+- Install to ${SPARK_INSTALL_DIR}
 - Set SPARK_HOME and update PATH in ~/.bash_profile
 
 ## Use Token Temporary AWS Credentials with the following configuration
