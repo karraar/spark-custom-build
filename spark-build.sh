@@ -41,8 +41,7 @@ download_spark_source() {
 update_hadoop_version() {
     echo "Updating Hadoop Version to ${HADOOP_VERSION}..."
     sed -i '' \
-        -e 's/<id>hadoop-2.7</<id>hadoop-'${HADOOP_VERSION}'</' \
-        -e 's/<hadoop.version>2.7.3</<hadoop.version>'${HADOOP_VERSION}'</' \
+        -e 's/<hadoop.version>2.6.5<\/<hadoop.version>/<hadoop.version>'${HADOOP_VERSION}'<\/hadoop.version>/' \
         pom.xml
 }
 
@@ -52,7 +51,6 @@ build_spark_dist() {
                                --pip \
                                --tgz \
                                -Psparkr \
-                               -Phadoop-${HADOOP_VERSION} \
                                -Phive \
                                -Phive-thriftserver \
                                -Pmesos \
@@ -75,14 +73,12 @@ download_dep_jar() {
     FULL_NAME=${NAME}-${VERSION}.jar
     echo "Downloading ${FULL_NAME}..."
     curl --silent \
-         --output ${FULL_NAME} \
+         --output dist/jars/${FULL_NAME} \
          https://repo1.maven.org/maven2/${ORG_PATH}/${NAME}/${VERSION}/${FULL_NAME}
     ls -l ${FULL_NAME}
 }
 
 download_aws_deps() {
-    cd dist/jars
-
     ## Hadoop AWS jars
     download_dep_jar hadoop-aws ${HADOOP_VERSION} org/apache/hadoop
 
@@ -91,7 +87,6 @@ download_aws_deps() {
     download_dep_jar aws-java-sdk-core ${AWS_VERSION} com/amazonaws
     download_dep_jar aws-java-sdk-s3 ${AWS_VERSION} com/amazonaws
 
-    cd -
 }
 
 setup_env_vars() {
@@ -104,7 +99,9 @@ export PATH=\${PATH}:\${SPARK_HOME}/bin
 
 update_spark_log_level() {
     echo "Updating spark log level to warn"
-    cat conf/log4j.properties.template |sed -e 's/INFO/WARN/g' > conf/log4j.properties
+    cat conf/log4j.properties.template \
+      | sed -e 's/INFO/WARN/g' \
+      > conf/log4j.properties
 }
 
 cleanup() {
