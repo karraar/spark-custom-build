@@ -17,37 +17,32 @@
 # limitations under the License.
 #
 
-set -e
+set -euo pipefail
 
 SPARK_VERSION=${SPARK_VERSION:-2.4.4}
 HADOOP_VERSION=${HADOOP_VERSION:-2.8.5}
 AWS_VERSION=${AWS_VERSION:-1.11.646}
-SPARK_INSTALL_DIR=~${SPARK_INSTALL_DIR:-$HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
+SPARK_INSTALL_DIR=${SPARK_INSTALL_DIR:-$HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
 
 TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
 
 download_spark_source() {
     TGZ="spark-${SPARK_VERSION}.tgz"
-    echo "Downloading ${TGZ}..."
-    curl --silent \
-         --output ${TGZ} \
-         http://apache.osuosl.org/spark/spark-${SPARK_VERSION}/${TGZ}
-
-    ls -l ${TGZ}
-    echo "Extracting ${TGZ}..."
-    tar -xf ${TGZ}
+    echo "Downloading and Extracting ${TGZ}..."
+    curl --silent "http://apache.osuosl.org/spark/spark-${SPARK_VERSION}/${TGZ}" \
+       | tar -xf -
 }
 
 update_hadoop_version() {
     echo "Updating Hadoop Version to ${HADOOP_VERSION}..."
     sed -i '' \
-        -e 's/<hadoop.version>2.6.5<\/<hadoop.version>/<hadoop.version>'${HADOOP_VERSION}'<\/hadoop.version>/' \
+        -e 's/<hadoop.version>2.6.5<\/hadoop.version>/<hadoop.version>'"${HADOOP_VERSION}"'<\/hadoop.version>/' \
         pom.xml
 }
 
 build_spark_dist() {
     echo "Building Distribution..."
-    ./dev/make-distribution.sh --name with-hadoop-${HADOOP_VERSION} \
+    ./dev/make-distribution.sh --name "with-hadoop-${HADOOP_VERSION}" \
                                --pip \
                                --tgz \
                                -Psparkr \
@@ -57,36 +52,34 @@ build_spark_dist() {
                                -Pyarn \
                                -Pkubernetes \
                                -Dorg.slf4j.simpleLogger.LogLevel=warn
-
 }
 
 install_spark_dist() {
     echo "Installing to ${SPARK_INSTALL_DIR}..."
-    mkdir -p ${SPARK_INSTALL_DIR}
-    cp -r ${TMP_BUILD_DIR}/spark-${SPARK_VERSION}/dist/* ${SPARK_INSTALL_DIR}/
+    mkdir -p "${SPARK_INSTALL_DIR}"
+    cp -r "${TMP_BUILD_DIR}/spark-${SPARK_VERSION}/dist"/* "${SPARK_INSTALL_DIR}"
 }
 
 download_dep_jar() {
     NAME=$1
     VERSION=$2
     ORG_PATH=$3
-    FULL_NAME=${NAME}-${VERSION}.jar
+    FULL_NAME="${NAME}-${VERSION}.jar"
     echo "Downloading ${FULL_NAME}..."
     curl --silent \
-         --output dist/jars/${FULL_NAME} \
-         https://repo1.maven.org/maven2/${ORG_PATH}/${NAME}/${VERSION}/${FULL_NAME}
-    ls -l ${FULL_NAME}
+         --output "dist/jars/${FULL_NAME}" \
+         "https://repo1.maven.org/maven2/${ORG_PATH}/${NAME}/${VERSION}/${FULL_NAME}"
+    ls -l "dist/jars/${FULL_NAME}"
 }
 
 download_aws_deps() {
     ## Hadoop AWS jars
-    download_dep_jar hadoop-aws ${HADOOP_VERSION} org/apache/hadoop
+    download_dep_jar hadoop-aws "${HADOOP_VERSION}" org/apache/hadoop
 
     ## AWS SDK
-    download_dep_jar aws-java-sdk ${AWS_VERSION} com/amazonaws
-    download_dep_jar aws-java-sdk-core ${AWS_VERSION} com/amazonaws
-    download_dep_jar aws-java-sdk-s3 ${AWS_VERSION} com/amazonaws
-
+    download_dep_jar aws-java-sdk "${AWS_VERSION}" com/amazonaws
+    download_dep_jar aws-java-sdk-core "${AWS_VERSION}" com/amazonaws
+    download_dep_jar aws-java-sdk-s3 "${AWS_VERSION}" com/amazonaws
 }
 
 setup_env_vars() {
@@ -99,27 +92,27 @@ export PATH=\${PATH}:\${SPARK_HOME}/bin
 
 update_spark_log_level() {
     echo "Updating spark log level to warn"
-    cat conf/log4j.properties.template \
-      | sed -e 's/INFO/WARN/g' \
+    sed -e 's/INFO/WARN/g' \
+      < conf/log4j.properties.template \
       > conf/log4j.properties
 }
 
 cleanup() {
    cd
-   rm -rf ${TMP_BUILD_DIR}
+   rm -rf "${TMP_BUILD_DIR}"
 }
 
 main() {
-    mkdir -p ${TMP_BUILD_DIR} \
-      && cd ${TMP_BUILD_DIR} \
-      && download_spark_source \
-      && cd spark-${SPARK_VERSION} \
-      && update_hadoop_version \
-      && build_spark_dist \
-      && download_aws_deps \
-      && update_spark_log_level \
-      && install_spark_dist \
-      && setup_env_vars
+    mkdir -p "${TMP_BUILD_DIR}"
+    cd "${TMP_BUILD_DIR}"
+    download_spark_source
+    cd "spark-${SPARK_VERSION}"
+    update_hadoop_version
+    build_spark_dist
+    download_aws_deps
+    update_spark_log_level
+    install_spark_dist
+    setup_env_vars
 }
 
 
