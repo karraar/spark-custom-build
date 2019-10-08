@@ -93,8 +93,8 @@ export PATH=\${PATH}:\${SPARK_HOME}/bin
 update_spark_log_level() {
     echo "Updating spark log level to warn"
     sed -e 's/INFO/WARN/g' \
-      < conf/log4j.properties.template \
-      > conf/log4j.properties
+      < dist/conf/log4j.properties.template \
+      > dist/conf/log4j.properties
 }
 
 cleanup() {
