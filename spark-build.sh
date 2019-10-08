@@ -28,9 +28,9 @@ TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
 
 download_spark_source() {
     TGZ="spark-${SPARK_VERSION}.tgz"
-    echo "Downloading spark-${SPARK_VERSION}..."
+    echo "Downloading ${TGZ}..."
     curl --silent \
-         --output spark-${SPARK_VERSION}.tgz \
+         --output ${TGZ} \
          http://apache.osuosl.org/spark/spark-${SPARK_VERSION}/${TGZ}
 
     ls -l ${TGZ}
