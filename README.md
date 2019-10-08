@@ -1,7 +1,7 @@
 # spark-custom-build
 ## Description
-This script will build spark, configure, and install as follows:
-- Using the env variables 
+This script will build spark, configure, and install a local install as follows:
+- Using environment variables:
   * SPARK_VERSION (default: 2.4.4)
   * HADOOP_VERSION (default: 2.8.5)
   * AWS_VERSION (default: 1.11.646)
