@@ -83,6 +83,7 @@ download_aws_deps() {
 }
 
 setup_env_vars() {
+    echo "Setting SPARK_HOME and PATH in ~/.bash_profile..."
     echo "
 export SPARK_HOME=${SPARK_INSTALL_DIR}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
@@ -98,8 +99,9 @@ update_spark_log_level() {
 }
 
 cleanup() {
-   cd
-   rm -rf "${TMP_BUILD_DIR}"
+    echo "Deleting build folder..."
+    cd
+    rm -rf "${TMP_BUILD_DIR}"
 }
 
 main() {
@@ -113,6 +115,7 @@ main() {
     update_spark_log_level
     install_spark_dist
     setup_env_vars
+    echo "Done. Happy Sparking!!!"
 }
 
 
