@@ -22,7 +22,7 @@ set -euo pipefail
 SPARK_VERSION=${SPARK_VERSION:-2.4.4}
 HADOOP_VERSION=${HADOOP_VERSION:-2.8.5}
 AWS_VERSION=${AWS_VERSION:-1.11.646}
-SPARK_INSTALL_DIR=${SPARK_INSTALL_DIR:-$HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
+SPARK_INSTALL_DIR=${SPARK_INSTALL_DIR:-$HOME/bin/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
 
 TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
 
@@ -46,7 +46,8 @@ build_spark_dist() {
                                -Pkubernetes \
                                -Dorg.slf4j.simpleLogger.LogLevel=warn \
                                -Dhadoop.version=${HADOOP_VERSION} \
-                               -Dcommons.httpclient.version=4.5.9
+                               -Dcommons.httpclient.version=4.5.9 \
+                               -q
 }
 
 install_spark_dist() {
