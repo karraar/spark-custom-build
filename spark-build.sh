@@ -46,8 +46,7 @@ build_spark_dist() {
                                -Pkubernetes \
                                -Dorg.slf4j.simpleLogger.LogLevel=warn \
                                -Dhadoop.version=${HADOOP_VERSION} \
-                               -Dcommons.httpclient.version=4.5.9 \
-                               -q
+                               -Dcommons.httpclient.version=4.5.9
 }
 
 install_spark_dist() {
@@ -110,6 +109,7 @@ main() {
     update_spark_log_level
     install_spark_dist
     setup_env_vars
+    cleanup
     echo "Done. Happy Sparking!!!"
 }
 
