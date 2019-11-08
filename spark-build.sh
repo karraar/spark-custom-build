@@ -33,13 +33,6 @@ download_spark_source() {
        | tar -xf -
 }
 
-update_hadoop_version() {
-    echo "Updating Hadoop Version to ${HADOOP_VERSION}..."
-    sed -i '' \
-        -e 's/<hadoop.version>2.6.5<\/hadoop.version>/<hadoop.version>'"${HADOOP_VERSION}"'<\/hadoop.version>/' \
-        pom.xml
-}
-
 build_spark_dist() {
     echo "Building Distribution..."
     ./dev/make-distribution.sh --name "with-hadoop-${HADOOP_VERSION}" \
@@ -51,7 +44,9 @@ build_spark_dist() {
                                -Pmesos \
                                -Pyarn \
                                -Pkubernetes \
-                               -Dorg.slf4j.simpleLogger.LogLevel=warn
+                               -Dorg.slf4j.simpleLogger.LogLevel=warn \
+                               -Dhadoop.version=${HADOOP_VERSION} \
+                               -Dcommons.httpclient.version=4.5.9
 }
 
 install_spark_dist() {
@@ -109,7 +104,6 @@ main() {
     cd "${TMP_BUILD_DIR}"
     download_spark_source
     cd "spark-${SPARK_VERSION}"
-    update_hadoop_version
     build_spark_dist
     download_aws_deps
     update_spark_log_level
