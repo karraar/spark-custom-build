@@ -1,6 +1,21 @@
-# spark-custom-build
+# Hadoop and Spark Mac OS Custom Build
 ## Description
-This script will build spark, configure, and install a local install as follows:
+Download, configure and install custom versions of Hadoop and Spark for Mac OS with native library support.
+### Hadoop Build
+#### Description
+Use native Mac OS libraries including (hadoop, zlib, nsappy, lz4, bzip2, openssl)
+This script will download, build, configure, and install a local install as follows:
+- Using environment variables:
+  * HADOOP_VERSION (default: 2.8.5)
+  * HADOOP_INSTALL_DIR (default: $HOME/bin/hadoop-${HADOOP_VERSION})
+- Download sources and checkout to specified version
+- Patch for libbz2
+- Build
+- Install to ${HADOOP_INSTALL_DIR}
+- Set environment variables in ~/.bash_profile
+### Spark Build
+#### Description
+This script will download, build, configure, and install a local install as follows:
 - Using environment variables:
   * SPARK_VERSION (default: 2.4.4)
   * HADOOP_VERSION (default: 2.8.5)
@@ -13,9 +28,9 @@ This script will build spark, configure, and install a local install as follows:
 - Install to ${SPARK_INSTALL_DIR}
 - Set SPARK_HOME and update PATH in ~/.bash_profile
 
-## Use Token Temporary AWS Credentials with the following configuration
+#### Use Token Temporary AWS Credentials with the following configuration
 ```bash
-spark-submit --master local[4] \
+spark-submit --master local[*] \
              --conf spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider \
              --conf spark.hadoop.fs.s3a.access.key=${AWS_ACCESS_KEY_ID} \
              --conf spark.hadoop.fs.s3a.secret.key=${AWS_SECRET_ACCESS_KEY} \
