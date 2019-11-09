@@ -10,15 +10,16 @@ TMP_BUILD_DIR=/tmp/hadoop-${HADOOP_VERSION}
 install_protobuf() {
     PROTO_VERSION=2.5.0
 
-    echo "Downloading Protobuff ${PROTO_VERSION} ..."
-    wget "https://github.com/google/protobuf/releases/download/v${PROTO_VERSION}/protobuf-${PROTO_VERSION}.tar.gz"
-    tar -xf protobuf-${PROTO_VERSION}.tar.gz
-    rm protobuf-${PROTO_VERSION}.tar.gz
+    PROTO_TGZ="protobuf-${PROTO_VERSION}.tar.gz"
+    echo "Downloading ${PROTO_TGZ} ..."
+    curl --location --silent \
+         "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTO_VERSION}/${PROTO_TGZ}" \
+       | tar -xf -
 
     echo "Building Protobuff ${PROTO_VERSION} ..."
     cd protobuf-${PROTO_VERSION}
     ./configure --silent
-    make --silent install
+    make --silent --jobs install >/dev/null 2>&1
     protoc --version
     cd ..
     rm -rf protobuf-${PROTO_VERSION}
@@ -26,9 +27,44 @@ install_protobuf() {
 
 install_prerequisites() {
     echo "Install prerequisites ..."
-    brew install wget gcc autoconf automake libtool cmake snappy gzip bzip2 zlib openssl
+    brew install maven gcc autoconf automake libtool cmake snappy gzip bzip2 zlib openssl
     ln -f -s /usr/local/include/opt/openssl/include/openssl /usr/local/include/openssl
     install_protobuf
+}
+
+patch_hadoop_bzip2() {
+    echo '
+diff --git a/hadoop-common-project/hadoop-common/src/CMakeLists.txt b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
+index c93bfe78546..a46b7534e9d 100644
+--- a/hadoop-common-project/hadoop-common/src/CMakeLists.txt
++++ b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
+@@ -50,8 +50,8 @@ get_filename_component(HADOOP_ZLIB_LIBRARY ${ZLIB_LIBRARIES} NAME)
+
+ # Look for bzip2.
+ set(STORED_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+-hadoop_set_find_shared_library_version("1")
+-find_package(BZip2 QUIET)
++hadoop_set_find_shared_library_version("1.0")
++find_package(BZip2 REQUIRED)
+ if(BZIP2_INCLUDE_DIR AND BZIP2_LIBRARIES)
+     get_filename_component(HADOOP_BZIP2_LIBRARY ${BZIP2_LIBRARIES} NAME)
+     set(BZIP2_SOURCE_FILES
+diff --git a/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml b/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
+index d2ddf893e49..90880c3a984 100644
+--- a/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
++++ b/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
+@@ -17,4 +17,8 @@
+ <!-- Put site-specific property overrides in this file. -->
+
+ <configuration>
++   <property>
++      <name>io.compression.codec.bzip2.library</name>
++      <value>libbz2.dylib</value>
++   </property>
+ </configuration>
+' > /tmp/bzip2.patch
+    git apply /tmp/bzip2.patch
+    rm /tmp/bzip2.patch
 }
 
 install_hadoop() {
@@ -38,10 +74,11 @@ install_hadoop() {
     git checkout "branch-${HADOOP_VERSION}"
 
     echo "Building Hadoop-${HADOOP_VERSION} ..."
+    patch_hadoop_bzip2
     mvn package --quiet \
                 -Pdist,native \
                 -DskipTests \
-                -Dlog4j.logger=WARN
+                -Dmaven.javadoc.skip=true
 
     echo "Installing Hadoop-${HADOOP_VERSION} ..."
     cp -R "hadoop-dist/target/hadoop-${HADOOP_VERSION}" "${HADOOP_INSTALL_DIR}"
@@ -60,7 +97,7 @@ export PATH=${PATH}:${HADOOP_HOME}/bin
 }
 
 cleanup() {
-    echo "Deleting build folder..."
+    echo "Deleting build folder: ${TMP_BUILD_DIR} ..."
     cd
     rm -rf "${TMP_BUILD_DIR}"
 }
