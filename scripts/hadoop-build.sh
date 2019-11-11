@@ -33,7 +33,7 @@ install_prerequisites() {
 }
 
 patch_hadoop_bzip2() {
-    echo '
+    cat << EOF > /tmp/bzip2.patch
 diff --git a/hadoop-common-project/hadoop-common/src/CMakeLists.txt b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
 index c93bfe78546..a46b7534e9d 100644
 --- a/hadoop-common-project/hadoop-common/src/CMakeLists.txt
@@ -62,7 +62,7 @@ index d2ddf893e49..90880c3a984 100644
 +      <value>libbz2.dylib</value>
 +   </property>
  </configuration>
-' > /tmp/bzip2.patch
+EOF
     git apply /tmp/bzip2.patch
     rm /tmp/bzip2.patch
 }
@@ -86,14 +86,15 @@ install_hadoop() {
 
 setup_env_vars() {
     echo "Setting HADOOP environment variables in ${HOME}/.bash_profile..."
-    echo '
-export HADOOP_VERSION='${HADOOP_VERSION}'
-export HADOOP_HOME='${HADOOP_INSTALL_DIR}'
-export HADOOP_OPTS="-Djava.library.path=${HADOOP_HOME}/lib/native"
-export LD_LIBRARY_PATH=${HADOOP_HOME}/lib/native${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-export JAVA_LIBRARY_PATH=${JAVA_LIBRARY_PATH}:${HADOOP_HOME}/lib/native
-export PATH=${PATH}:${HADOOP_HOME}/bin
-' >> "${HOME}/.bash_profile"
+    cat << EOF >> "${HOME}"/.bash_profile
+export HADOOP_VERSION=${HADOOP_VERSION}
+export HADOOP_HOME="${HADOOP_INSTALL_DIR}
+export HADOOP_OPTS="-Djava.library.path=\${HADOOP_HOME}/lib/native"
+export LD_LIBRARY_PATH=\${HADOOP_HOME}/lib/native\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}
+export JAVA_LIBRARY_PATH=\${JAVA_LIBRARY_PATH}:\${HADOOP_HOME}/lib/native
+export PATH=\${PATH}:\${HADOOP_HOME}/bin
+EOF
+
 }
 
 cleanup() {
@@ -108,7 +109,7 @@ main() {
     install_prerequisites
     install_hadoop
     setup_env_vars
-    source ~/.bash_profile
+    source "${HOME}"/.bash_profile
     hadoop checknative -a
     cleanup
     echo "Done. Happy Hadooping!!!"

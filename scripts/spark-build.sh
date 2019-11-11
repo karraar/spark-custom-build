@@ -45,7 +45,7 @@ build_spark_dist() {
                                -Pyarn \
                                -Pkubernetes \
                                -Dorg.slf4j.simpleLogger.LogLevel=warn \
-                               -Dhadoop.version=${HADOOP_VERSION} \
+                               -Dhadoop.version="${HADOOP_VERSION}" \
                                -Dcommons.httpclient.version=4.5.9
 }
 
@@ -79,10 +79,10 @@ download_aws_deps() {
 
 setup_env_vars() {
     echo "Setting SPARK_HOME and PATH in ~/.bash_profile..."
-    echo "
+    cat << EOF >> "${HOME}"/.bash_profile
 export SPARK_HOME=${SPARK_INSTALL_DIR}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
-" >> ~/.bash_profile
+EOF
 
 }
 
