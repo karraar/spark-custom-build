@@ -26,8 +26,20 @@ install_protobuf() {
 }
 
 install_prerequisites() {
-    echo "Install prerequisites ..."
-    brew install maven gcc autoconf automake libtool cmake snappy gzip bzip2 zlib openssl
+    echo "Installing prerequisites ..."
+    if [ -z "$(which brew)" ]; then
+        echo "Installing brew..."
+        /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"   
+    fi
+
+    brew cask list|grep adoptopenjdk8
+    if [ $? -ne 0 ]; then
+        echo "Install OpenJDK8..."
+        brew tap AdoptOpenJDK/openjdk
+        brew cask install adoptopenjdk8
+    fi
+
+    brew install r sbt maven gcc autoconf automake libtool cmake snappy gzip bzip2 zlib openssl
     ln -f -s /usr/local/include/opt/openssl/include/openssl /usr/local/include/openssl
     install_protobuf
 }
@@ -38,16 +50,16 @@ diff --git a/hadoop-common-project/hadoop-common/src/CMakeLists.txt b/hadoop-com
 index c93bfe78546..a46b7534e9d 100644
 --- a/hadoop-common-project/hadoop-common/src/CMakeLists.txt
 +++ b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
-@@ -50,8 +50,8 @@ get_filename_component(HADOOP_ZLIB_LIBRARY ${ZLIB_LIBRARIES} NAME)
+@@ -50,8 +50,8 @@ get_filename_component(HADOOP_ZLIB_LIBRARY \${ZLIB_LIBRARIES} NAME)
 
  # Look for bzip2.
- set(STORED_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+ set(STORED_CMAKE_FIND_LIBRARY_SUFFIXES \${CMAKE_FIND_LIBRARY_SUFFIXES})
 -hadoop_set_find_shared_library_version("1")
 -find_package(BZip2 QUIET)
 +hadoop_set_find_shared_library_version("1.0")
 +find_package(BZip2 REQUIRED)
  if(BZIP2_INCLUDE_DIR AND BZIP2_LIBRARIES)
-     get_filename_component(HADOOP_BZIP2_LIBRARY ${BZIP2_LIBRARIES} NAME)
+     get_filename_component(HADOOP_BZIP2_LIBRARY \${BZIP2_LIBRARIES} NAME)
      set(BZIP2_SOURCE_FILES
 diff --git a/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml b/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
 index d2ddf893e49..90880c3a984 100644
@@ -68,6 +80,10 @@ EOF
 }
 
 install_hadoop() {
+    if [ -d hadoop ]; then
+        rm -rf hadoop
+    fi
+
     echo "Downloading Hadoop-${HADOOP_VERSION} ..."
     git clone https://github.com/apache/hadoop.git
     cd hadoop
