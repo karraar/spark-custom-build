@@ -32,6 +32,8 @@ install_prerequisites() {
         /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"   
     fi
 
+    brew update || brew update
+    brew upgrade
     brew cask list|grep adoptopenjdk8
     if [ $? -ne 0 ]; then
         echo "Install OpenJDK8..."

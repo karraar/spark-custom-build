@@ -17,7 +17,7 @@ This script will download, build, configure, and install a local install as foll
 #### Description
 This script will download, build, configure, and install a local install as follows:
 - Using environment variables:
-  * SPARK_VERSION (default: 2.4.4)
+  * SPARK_VERSION (default: 2.4.5)
   * HADOOP_VERSION (default: 2.8.5)
   * AWS_VERSION (default: 1.11.646)
   * SPARK_INSTALL_DIR (default: $HOME/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION})
