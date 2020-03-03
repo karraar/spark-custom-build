@@ -25,6 +25,7 @@ AWS_VERSION=${AWS_VERSION:-1.11.646}
 SPARK_INSTALL_DIR=${SPARK_INSTALL_DIR:-$HOME/bin/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
 
 TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
+PROFILES_DIR="${HOME}"/etc/profile.d
 
 download_spark_source() {
     TGZ="spark-${SPARK_VERSION}.tgz"
@@ -77,13 +78,18 @@ download_aws_deps() {
     download_dep_jar aws-java-sdk-s3 "${AWS_VERSION}" com/amazonaws
 }
 
-setup_env_vars() {
+write_spark_profile() {
     echo "Setting SPARK_HOME and PATH in ~/.bash_profile..."
-    cat << EOF >> "${HOME}"/.bash_profile
+    cat << EOF > "${PROFILES_DIR}"/spark.sh
 export SPARK_HOME=${SPARK_INSTALL_DIR}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
 EOF
 
+    cat << EOF >> "${HOME}"/.bash_profile
+source ${PROFILES_DIR}/spark.sh
+EOF
+
+    source "${PROFILES_DIR}"/spark.sh
 }
 
 update_spark_log_level() {
@@ -100,6 +106,7 @@ cleanup() {
 }
 
 main() {
+    mkdir -p "${PROFILES_DIR}"
     mkdir -p "${TMP_BUILD_DIR}"
     cd "${TMP_BUILD_DIR}"
     download_spark_source
@@ -108,7 +115,7 @@ main() {
     download_aws_deps
     update_spark_log_level
     install_spark_dist
-    setup_env_vars
+    write_spark_profile
     cleanup
     echo "Done. Happy Sparking!!!"
 }
