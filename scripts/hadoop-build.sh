@@ -6,59 +6,65 @@ HADOOP_VERSION=${HADOOP_VERSION:-2.8.5}
 HADOOP_INSTALL_DIR=${HADOOP_INSTALL_DIR:-$HOME/bin/hadoop-${HADOOP_VERSION}}
 
 TMP_BUILD_DIR=/tmp/hadoop-${HADOOP_VERSION}
-PROFILES_DIR="${HOME}"/etc/profile.d/
+PROFILES_DIR="${HOME}"/etc/profile.d
 
 install_protobuf() {
     PROTO_VERSION=2.5.0
+    if ! command -v protoc >/dev/null 2>&1 -o [ "$(protoc --version)" == "libprotoc ${PROTO_VERSION}" ]; then
 
-    PROTO_TGZ="protobuf-${PROTO_VERSION}.tar.gz"
-    echo "Downloading ${PROTO_TGZ} ..."
-    curl --silent \
-         --location \
-         "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTO_VERSION}/${PROTO_TGZ}" \
-       | tar -xf -
+        PROTO_TGZ="protobuf-${PROTO_VERSION}.tar.gz"
+        echo "Downloading ${PROTO_TGZ} ..."
+        curl --silent \
+             --location \
+             "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTO_VERSION}/${PROTO_TGZ}" \
+           | tar -xf -
 
-    echo "Building Protobuff ${PROTO_VERSION} ..."
-    cd protobuf-${PROTO_VERSION}
-    ./configure --silent
-    make --silent --jobs install >/dev/null 2>&1
-    protoc --version
-    cd ..
-    rm -rf protobuf-${PROTO_VERSION}
+        echo "Building Protobuff ${PROTO_VERSION} ..."
+        cd protobuf-${PROTO_VERSION}
+        ./configure --silent
+        make --silent --jobs install >/dev/null 2>&1
+        protoc --version
+        cd ..
+        rm -rf protobuf-${PROTO_VERSION}
+    fi
 }
 
 write_java_profile() {
-  echo "Setting JAVA environment variables..."
-  cat << EOF > "${PROFILES_DIR}"/java.sh
+    echo "Setting JAVA environment variables..."
+    cat << EOF > "${PROFILES_DIR}"/java.sh
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home/
 export PATH=\${PATH}:\${JAVA_HOME}/bin
 EOF
 
-  cat << EOF >> "${HOME}"/.bash_profile
-source "${PROFILES_DIR}"/java.sh
+    cat << EOF >> "${HOME}"/.bash_profile
+source ${PROFILES_DIR}/java.sh
 EOF
 }
 
 install_or_check_java() {
 
-  if ! brew cask list adoptopenjdk8; then
-      echo "Install OpenJDK8..."
-      brew tap AdoptOpenJDK/openjdk
-      brew cask install adoptopenjdk8
-      write_java_profile
-  fi
-
-  if [ -z "${JAVA_HOME}" ]; then
-    if [ -f "${PROFILES_DIR}"/java.sh ]; then
-      # shellcheck source=/dev/null
-      source "${PROFILES_DIR}"/java.sh
+    if ! brew cask list adoptopenjdk8; then
+        echo "Install OpenJDK8..."
+        brew tap AdoptOpenJDK/openjdk
+        brew cask install adoptopenjdk8
+        write_java_profile
     fi
-  fi
 
-  if [ -z "${JAVA_HOME}" ]; then
-    echo "JAVA_HOME is not set, exiting"
-    exit 1
-  fi
+    if [ -z "${JAVA_HOME}" ]; then
+        if [ -f "${PROFILES_DIR}"/java.sh ]; then
+            # shellcheck source=/dev/null
+            source "${PROFILES_DIR}"/java.sh
+        else
+            write_java_profile
+            # shellcheck source=/dev/null
+            source "${PROFILES_DIR}"/java.sh
+        fi
+    fi
+
+    if [ -z "${JAVA_HOME}" ]; then
+        echo "JAVA_HOME is not set, exiting"
+        exit 1
+    fi
 }
 
 install_prerequisites() {
@@ -72,43 +78,13 @@ install_prerequisites() {
     brew upgrade
     install_or_check_java
     brew install -f r sbt maven gcc autoconf automake libtool cmake snappy gzip bzip2 zlib openssl
-    ln -f -s /usr/local/include/opt/openssl/include/openssl /usr/local/include/openssl
+
+    OPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl@1.1
+    OPENSSL_INCLUDE_DIR="${OPENSSL_ROOT_DIR}/include"
+    OPENSSL_SSL_LIBRARY="${OPENSSL_ROOT_DIR}/lib"
+    export OPENSSL_ROOT_DIR OPENSSL_INCLUDE_DIR OPENSSL_SSL_LIBRARY
+
     install_protobuf
-}
-
-patch_hadoop_bzip2() {
-    cat << EOF > /tmp/bzip2.patch
-diff --git a/hadoop-common-project/hadoop-common/src/CMakeLists.txt b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
-index c93bfe78546..a46b7534e9d 100644
---- a/hadoop-common-project/hadoop-common/src/CMakeLists.txt
-+++ b/hadoop-common-project/hadoop-common/src/CMakeLists.txt
-@@ -50,8 +50,8 @@ get_filename_component(HADOOP_ZLIB_LIBRARY \${ZLIB_LIBRARIES} NAME)
-
- # Look for bzip2.
- set(STORED_CMAKE_FIND_LIBRARY_SUFFIXES \${CMAKE_FIND_LIBRARY_SUFFIXES})
--hadoop_set_find_shared_library_version("1")
--find_package(BZip2 QUIET)
-+hadoop_set_find_shared_library_version("1.0")
-+find_package(BZip2 REQUIRED)
- if(BZIP2_INCLUDE_DIR AND BZIP2_LIBRARIES)
-     get_filename_component(HADOOP_BZIP2_LIBRARY \${BZIP2_LIBRARIES} NAME)
-     set(BZIP2_SOURCE_FILES
-diff --git a/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml b/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
-index d2ddf893e49..90880c3a984 100644
---- a/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
-+++ b/hadoop-common-project/hadoop-common/src/main/conf/core-site.xml
-@@ -17,4 +17,8 @@
- <!-- Put site-specific property overrides in this file. -->
-
- <configuration>
-+   <property>
-+      <name>io.compression.codec.bzip2.library</name>
-+      <value>libbz2.dylib</value>
-+   </property>
- </configuration>
-EOF
-    git apply /tmp/bzip2.patch
-    rm /tmp/bzip2.patch
 }
 
 install_hadoop() {
@@ -119,10 +95,12 @@ install_hadoop() {
     echo "Downloading Hadoop-${HADOOP_VERSION} ..."
     git clone https://github.com/apache/hadoop.git
     cd hadoop
-    git checkout "branch-${HADOOP_VERSION}"
+    git checkout "rel/release-${HADOOP_VERSION}"
+
+    echo "Patch OpenSSL 1.1"
+    curl https://issues.apache.org/jira/secure/attachment/12875105/HADOOP-14597.04.patch | git apply
 
     echo "Building Hadoop-${HADOOP_VERSION} ..."
-    patch_hadoop_bzip2
     mvn package --quiet \
                 -Pdist,native \
                 -DskipTests \
@@ -143,18 +121,20 @@ export JAVA_LIBRARY_PATH=\${JAVA_LIBRARY_PATH}:\${HADOOP_HOME}/lib/native
 export PATH=\${PATH}:\${HADOOP_HOME}/bin
 EOF
 
-  cat << EOF >> "${HOME}"/.bash_profile
+    cat << EOF >> "${HOME}"/.bash_profile
 source ${PROFILES_DIR}/hadoop.sh
 EOF
 
-  # shellcheck source=/dev/null
-  source "${PROFILES_DIR}"/hadoop.sh
+    # shellcheck source=/dev/null
+    source "${PROFILES_DIR}"/hadoop.sh
 }
 
 cleanup() {
     echo "Deleting build folder: ${TMP_BUILD_DIR} ..."
     cd
-    rm -rf "${TMP_BUILD_DIR}"
+    if [ -d "${TMP_BUILD_DIR}" ]; then
+        rm -rf "${TMP_BUILD_DIR}"
+    fi
 }
 
 main() {

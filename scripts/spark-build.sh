@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-SPARK_VERSION=${SPARK_VERSION:-2.4.5}
+SPARK_VERSION=${SPARK_VERSION:-3.0.0-rc1}
 HADOOP_VERSION=${HADOOP_VERSION:-2.8.5}
 AWS_VERSION=${AWS_VERSION:-1.11.646}
 SPARK_INSTALL_DIR=${SPARK_INSTALL_DIR:-$HOME/bin/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}}
@@ -28,10 +28,10 @@ TMP_BUILD_DIR=/tmp/spark-${SPARK_VERSION}-with-hadoop-${HADOOP_VERSION}
 PROFILES_DIR="${HOME}"/etc/profile.d
 
 download_spark_source() {
-    TGZ="spark-${SPARK_VERSION}.tgz"
-    echo "Downloading and Extracting ${TGZ}..."
-    curl --silent "http://apache.osuosl.org/spark/spark-${SPARK_VERSION}/${TGZ}" \
-       | tar -xf -
+    echo "Downloading Spark..."
+    git clone https://github.com/apache/spark.git
+    cd spark
+    git checkout "v${SPARK_VERSION}"
 }
 
 build_spark_dist() {
@@ -45,7 +45,7 @@ build_spark_dist() {
                                -Pmesos \
                                -Pyarn \
                                -Pkubernetes \
-                               -Dorg.slf4j.simpleLogger.LogLevel=warn \
+                               -Dorg.slf4j.simpleLogger.LogLevel=error \
                                -Dhadoop.version="${HADOOP_VERSION}" \
                                -Dcommons.httpclient.version=4.5.9
 }
@@ -53,7 +53,7 @@ build_spark_dist() {
 install_spark_dist() {
     echo "Installing to ${SPARK_INSTALL_DIR}..."
     mkdir -p "${SPARK_INSTALL_DIR}"
-    cp -r "${TMP_BUILD_DIR}/spark-${SPARK_VERSION}/dist"/* "${SPARK_INSTALL_DIR}"
+    cp -r "${TMP_BUILD_DIR}/spark/dist"/* "${SPARK_INSTALL_DIR}"
 }
 
 download_dep_jar() {
@@ -89,6 +89,7 @@ EOF
 source ${PROFILES_DIR}/spark.sh
 EOF
 
+    # shellcheck source=/dev/null
     source "${PROFILES_DIR}"/spark.sh
 }
 
@@ -102,15 +103,16 @@ update_spark_log_level() {
 cleanup() {
     echo "Deleting build folder..."
     cd
-    rm -rf "${TMP_BUILD_DIR}"
+    if [ -d "${TMP_BUILD_DIR}" ]; then
+        rm -rf "${TMP_BUILD_DIR}"
+    fi
 }
 
 main() {
-    mkdir -p "${PROFILES_DIR}"
-    mkdir -p "${TMP_BUILD_DIR}"
+    cleanup
+    mkdir -p "${PROFILES_DIR}" "${TMP_BUILD_DIR}"
     cd "${TMP_BUILD_DIR}"
     download_spark_source
-    cd "spark-${SPARK_VERSION}"
     build_spark_dist
     download_aws_deps
     update_spark_log_level
